@@ -12,32 +12,38 @@ use tantivy::{doc, Index};
 
 use crate::config::IndexConfig;
 
-pub fn get_schema() -> Schema {
-    let mut schema_builder = Schema::builder();
-    // TODO: more fields? tag, etc.? could be useful if we expand to other file types as well?
-    schema_builder.add_text_field("filename", STRING | STORED);
-    // TODO: make sure stemming tokenizer is running on this field
-    schema_builder.add_text_field("contents", TEXT);
-    schema_builder.build()
+struct MyIndex {
+    index: Index,
+    filename: Field,
+    contents: Field,
 }
 
-pub fn get_index(path: String) -> tantivy::Result<Index> {
-    let schema = get_schema();
-    let index_path = MmapDirectory::open(path)?;
-    let index = Index::open_or_create(index_path, schema.clone())?;
-    Ok(index)
+impl MyIndex {
+    fn open(path: String) -> tantivy::Result<Self> {
+        let mut schema_builder = Schema::builder();
+        // TODO: more fields? tag, etc.? could be useful if we expand to other file types as well?
+        schema_builder.add_text_field("filename", STRING | STORED);
+        // TODO: make sure stemming tokenizer is running on this field
+        schema_builder.add_text_field("contents", TEXT);
+        let schema = schema_builder.build();
+
+        let index_path = MmapDirectory::open(path)?;
+        let index = Index::open_or_create(index_path, schema.clone())?;
+
+        Ok(Self {
+            index,
+            filename: schema.get_field("filename").unwrap(),
+            contents: schema.get_field("contents").unwrap(),
+        })
+    }
 }
 
 pub fn reindex(index_config: IndexConfig) -> tantivy::Result<()> {
-    let index = get_index(index_config.index_path.clone())?;
-    let mut index_writer = index.writer(50_000_000)?;
+    let my_index = MyIndex::open(index_config.index_path.clone())?;
+    let mut index_writer = my_index.index.writer(50_000_000)?;
 
     // reset the index
     index_writer.delete_all_documents()?;
-
-    let schema = get_schema();
-    let filename = schema.get_field("filename").unwrap();
-    let contents = schema.get_field("contents").unwrap();
 
     let glob_options = MatchOptions {
         case_sensitive: index_config.case_sensitive.unwrap_or(true),
@@ -57,8 +63,8 @@ pub fn reindex(index_config: IndexConfig) -> tantivy::Result<()> {
                         debug!("Adding file: {}", path.display());
                         let mut file = File::open(path)?;
                         let doc = doc!(
-                            filename => path.to_str().unwrap(),
-                            contents => {
+                            my_index.filename => path.to_str().unwrap(),
+                            my_index.contents => {
                                 let mut contents = String::new();
                                 file.read_to_string(&mut contents)?;
                                 contents
@@ -85,25 +91,26 @@ pub fn search(
     query: &str,
     limit: usize,
 ) -> tantivy::Result<Vec<Result>> {
-    let index = get_index(index_config.index_path.clone())?;
-    let schema = index.schema();
-    // TODO: put this in a struct so can do fieldsStruct = FieldsStruct::from(schema)
-    let contents = schema.get_field("contents").unwrap();
-    let filename = schema.get_field("filename").unwrap();
+    let my_index = MyIndex::open(index_config.index_path.clone())?;
 
-    let reader = index
+    let reader = my_index
+        .index
         .reader_builder()
         .reload_policy(ReloadPolicy::OnCommit)
         .try_into()?;
 
     let searcher = reader.searcher();
-    let query_parser = QueryParser::for_index(&index, vec![contents]);
+    let query_parser = QueryParser::for_index(&my_index.index, vec![my_index.contents]);
     let query = query_parser.parse_query(&query)?;
     let top_docs = searcher.search(&query, &TopDocs::with_limit(limit))?;
     let mut results = Vec::new();
     for (score, doc_address) in top_docs {
         let retrieved_doc = searcher.doc(doc_address)?;
-        let fname = retrieved_doc.get_first(filename).unwrap().text().unwrap();
+        let fname = retrieved_doc
+            .get_first(my_index.filename)
+            .unwrap()
+            .text()
+            .unwrap();
         results.push(Result {
             score,
             fname: fname.to_owned(),
