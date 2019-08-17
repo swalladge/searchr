@@ -1,6 +1,8 @@
-use glob::glob;
+use glob::{glob_with, MatchOptions};
+use log::{debug, info, warn};
 use std::fs::File;
 use std::io::Read;
+use std::path::Path;
 use tantivy::collector::TopDocs;
 use tantivy::directory::MmapDirectory;
 use tantivy::query::QueryParser;
@@ -37,24 +39,36 @@ pub fn reindex(index_config: IndexConfig) -> tantivy::Result<()> {
     let filename = schema.get_field("filename").unwrap();
     let contents = schema.get_field("contents").unwrap();
 
+    let glob_options = MatchOptions {
+        case_sensitive: index_config.case_sensitive.unwrap_or(true),
+        require_literal_separator: index_config.require_literal_separator.unwrap_or(false),
+        require_literal_leading_dot: index_config.require_literal_leading_dot.unwrap_or(false),
+    };
+
     // now add all the matching files to the index
     for expr in index_config.files {
-        for entry in glob(&expr).expect("failed to read glob pattern") {
+        info!(":: Adding pattern to index: {}", expr);
+        for entry in glob_with(&expr, glob_options).expect("failed to read glob pattern") {
             match entry {
                 Ok(path) => {
-                    let mut file = File::open(&path)?;
-                    let doc = doc!(
-                        filename => path.to_str().unwrap(),
-                        contents => {
-                            let mut contents = String::new();
-                            file.read_to_string(&mut contents)?;
-                            contents
-                        },
-                    );
-                    index_writer.add_document(doc);
+                    let path = Path::new(&path);
+                    // skip directories - we only want to read files
+                    if path.is_file() {
+                        debug!("Adding file: {}", path.display());
+                        let mut file = File::open(path)?;
+                        let doc = doc!(
+                            filename => path.to_str().unwrap(),
+                            contents => {
+                                let mut contents = String::new();
+                                file.read_to_string(&mut contents)?;
+                                contents
+                            },
+                        );
+                        index_writer.add_document(doc);
+                    }
                 }
                 Err(e) => {
-                    println!("Warning: {:?}", e);
+                    warn!("Warning: {:?}", e);
                 }
             }
         }

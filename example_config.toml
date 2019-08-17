@@ -1,16 +1,28 @@
 [main]
+
 # Default index to use. Required if more than one index defined below.
 default_index = "wiki"
+
 
 # Multiple indexes can be supplied following the below format. Each index must
 # have a unique name. Use a unique index_path per index.
 [indexes.wiki]
+
 # The directory to store the index files in. Must exist. Should be an absolute
 # path.
 index_path = "/home/swalladge/.wiki-index"
+
 # List of files to index. Globbing supported - uses the glob crate - see
 # https://docs.rs/glob/0.3.0/glob/ for behaviour specific to this globbing
 # library.
 files = [
   '/home/swalladge/wiki/**/*.md'
 ]
+
+# Custom options for glob matching files for this index. These are optional.
+# See https://docs.rs/glob/0.3.0/glob/struct.MatchOptions.html for details.
+# Defaults are shown below:
+# case_sensitive = true
+# require_literal_separator = false
+# require_literal_leading_dot = false
+# Note that require_literal_leading_dot is not fully working. See https://github.com/rust-lang-nursery/glob/issues/67

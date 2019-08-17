@@ -12,6 +12,9 @@ use crate::tools::{reindex, search};
 #[derive(StructOpt, Debug)]
 #[structopt(name = "local-search")]
 struct Opt {
+    /// Be verbose (log to stderr). -vv for debug level, -vvv for trace
+    #[structopt(short = "v", long = "verbose", parse(from_occurrences))]
+    verbose: u32,
     /// Use a custom config file
     #[structopt(short = "c", long = "config")]
     config_path: Option<String>,
@@ -44,6 +47,19 @@ enum Command {
 fn main() -> Result<(), Box<dyn Error>> {
     let opt = Opt::from_args();
     let config = Config::load(opt.config_path)?;
+
+    let level = match opt.verbose {
+        0 => simplelog::LevelFilter::Warn,
+        1 => simplelog::LevelFilter::Info,
+        2 => simplelog::LevelFilter::Debug,
+        _ => simplelog::LevelFilter::Trace,
+    };
+    simplelog::TermLogger::init(
+        level,
+        simplelog::Config::default(),
+        simplelog::TerminalMode::Stderr,
+    )
+    .unwrap();
 
     if config.indexes.is_empty() {
         return Err("no indexes defined in the config file".into());

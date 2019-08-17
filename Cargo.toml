@@ -9,7 +9,9 @@ edition = "2018"
 [dependencies]
 failure = "0.1.5"
 glob = "0.3.0"
+log = "0.4"
 serde = { version = "1.0.99", features = ["derive"] }
+simplelog = "0.6.0"
 structopt = "0.2.18"
 tantivy = "0.10.1"
 toml = "0.5.1"

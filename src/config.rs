@@ -25,6 +25,9 @@ pub struct MainConfig {
 pub struct IndexConfig {
     pub index_path: String,
     pub files: Vec<String>,
+    pub case_sensitive: Option<bool>,
+    pub require_literal_separator: Option<bool>,
+    pub require_literal_leading_dot: Option<bool>,
 }
 
 impl Config {

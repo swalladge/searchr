@@ -3,8 +3,8 @@
 
 A simple command line search engine for your local plain text files.
 
-Work in progress! The code is littered with TODO's, everything is hardcoded,
-and not much is implemented yet. Use at own risk!
+Work in progress! Most functionality has been implemented, but is likely to be
+rough around the edges.
 
 ## Installation
 
@@ -22,7 +22,15 @@ work fine.
 
 ## Configuration
 
-TODO
+See [example_config.toml](./example_config.toml) for an example. The software
+searches for the configuration file in the following locations in order, and
+uses the first match:
+
+1. path passed to `-c` on the command line
+2. `$XDG_CONFIG_HOME/local-search/config.toml`
+3. `$HOME/.config/local-search/config.toml`
+
+If none are found, the software exits with an error.
 
 
 ## Notes
