@@ -1,0 +1,14 @@
+
+# TODO: work on designing this config
+
+[main]
+default_index = "wiki"
+
+[indexes.wiki]
+index_path = "~/.wiki-index"
+# TODO: design method for including/excluding files from index.
+# Need to choose base directory/directories to start crawling, and inclusion,
+# exclusion criteria
+
+[indexes.random_notes]
+index_path = "~/.random-things-index"
