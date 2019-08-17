@@ -5,7 +5,6 @@ use std::path::Path;
 use glob::{glob_with, MatchOptions};
 use log::{debug, info, warn};
 use tantivy::collector::TopDocs;
-use tantivy::directory::MmapDirectory;
 use tantivy::query::QueryParser;
 use tantivy::schema::*;
 use tantivy::tokenizer::*;
@@ -14,6 +13,28 @@ use tantivy::{doc, Index};
 
 use crate::config::IndexConfig;
 
+fn lang_to_str(l: Language) -> &'static str {
+    match l {
+        Language::Arabic => "Arabic",
+        Language::Danish => "Danish",
+        Language::Dutch => "Dutch",
+        Language::English => "English",
+        Language::Finnish => "Finnish",
+        Language::French => "French",
+        Language::German => "German",
+        Language::Greek => "Greek",
+        Language::Hungarian => "Hungarian",
+        Language::Italian => "Italian",
+        Language::Portuguese => "Portuguese",
+        Language::Romanian => "Romanian",
+        Language::Russian => "Russian",
+        Language::Spanish => "Spanish",
+        Language::Swedish => "Swedish",
+        Language::Tamil => "Tamil",
+        Language::Turkish => "Turkish",
+    }
+}
+
 struct MyIndex {
     index: Index,
     filename: Field,
@@ -21,7 +42,26 @@ struct MyIndex {
 }
 
 impl MyIndex {
-    fn open(path: String) -> tantivy::Result<Self> {
+    fn open(index_config: &IndexConfig) -> tantivy::Result<Self> {
+        let index = Index::open_in_dir(&index_config.index_path)?;
+        // Use a custom stemmer based on en_stem. We can modify this later to switch languages from
+        // the config if desired.
+        let stemmer = SimpleTokenizer
+            .filter(RemoveLongFilter::limit(40))
+            .filter(LowerCaser)
+            .filter(Stemmer::new(index_config.language));
+        let stemmer_name = format!("custom_stemmer_{}", lang_to_str(index_config.language));
+        index.tokenizers().register(&stemmer_name, stemmer);
+
+        let schema = index.schema();
+        Ok(Self {
+            index,
+            filename: schema.get_field("filename").unwrap(),
+            contents: schema.get_field("contents").unwrap(),
+        })
+    }
+
+    fn create(index_config: &IndexConfig) -> tantivy::Result<Self> {
         let mut schema_builder = Schema::builder();
         schema_builder.add_text_field("filename", STRING | STORED);
 
@@ -30,8 +70,8 @@ impl MyIndex {
         let stemmer = SimpleTokenizer
             .filter(RemoveLongFilter::limit(40))
             .filter(LowerCaser)
-            .filter(Stemmer::new(Language::English));
-        let stemmer_name = format!("custom_stemmer_{}", "en");
+            .filter(Stemmer::new(index_config.language));
+        let stemmer_name = format!("custom_stemmer_{}", lang_to_str(index_config.language));
 
         let text_options = TextOptions::default().set_indexing_options(
             TextFieldIndexing::default()
@@ -41,8 +81,7 @@ impl MyIndex {
         schema_builder.add_text_field("contents", text_options);
         let schema = schema_builder.build();
 
-        let index_path = MmapDirectory::open(path)?;
-        let index = Index::open_or_create(index_path, schema.clone())?;
+        let index = Index::create_in_dir(&index_config.index_path, schema.clone())?;
         index.tokenizers().register(&stemmer_name, stemmer);
 
         Ok(Self {
@@ -54,7 +93,7 @@ impl MyIndex {
 }
 
 pub fn reindex(index_config: IndexConfig) -> tantivy::Result<()> {
-    let my_index = MyIndex::open(index_config.index_path.clone())?;
+    let my_index = MyIndex::create(&index_config)?;
     let mut index_writer = my_index.index.writer(50_000_000)?;
 
     // reset the index
@@ -106,7 +145,7 @@ pub fn search(
     query: &str,
     limit: usize,
 ) -> tantivy::Result<Vec<Result>> {
-    let my_index = MyIndex::open(index_config.index_path.clone())?;
+    let my_index = MyIndex::open(&index_config)?;
 
     let reader = my_index
         .index

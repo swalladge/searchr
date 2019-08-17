@@ -6,6 +6,7 @@ use std::io::Read;
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
+use tantivy::tokenizer::Language;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(deny_unknown_fields)]
@@ -20,10 +21,16 @@ pub struct MainConfig {
     pub default_index: Option<String>,
 }
 
+fn default_language() -> Language {
+    Language::English
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct IndexConfig {
     pub index_path: String,
+    #[serde(default = "default_language")]
+    pub language: Language,
     pub files: Vec<String>,
     pub case_sensitive: Option<bool>,
     pub require_literal_separator: Option<bool>,

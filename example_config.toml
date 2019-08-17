@@ -7,6 +7,11 @@ default_index = "wiki"
 # Multiple indexes can be supplied following the below format. Each index must
 # have a unique name. Use a unique index_path per index.
 [indexes.wiki]
+# see https://docs.rs/tantivy/0.10.1/tantivy/tokenizer/enum.Language.html for
+# available languages. Default is "English".
+# If this is changed, the index files must be manually removed, and index
+# recreated.
+language = "English"
 
 # The directory to store the index files in. Must exist. Should be an absolute
 # path.
