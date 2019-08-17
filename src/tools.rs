@@ -10,7 +10,6 @@ use tantivy::ReloadPolicy;
 use tantivy::{doc, Index, IndexWriter};
 use walkdir::WalkDir;
 
-
 pub fn get_schema() -> Schema {
     let mut schema_builder = Schema::builder();
     // TODO: more fields? tag, etc.? could be useful if we expand to other file types as well?
@@ -19,6 +18,13 @@ pub fn get_schema() -> Schema {
     schema_builder.add_text_field("contents", TEXT);
     let schema = schema_builder.build();
     schema
+}
+
+pub fn get_index(path: String) -> tantivy::Result<Index> {
+    let schema = get_schema();
+    let index_path = MmapDirectory::open(path)?;
+    let index = Index::open_or_create(index_path, schema.clone())?;
+    Ok(index)
 }
 
 pub fn reindex(index: Index) -> tantivy::Result<()> {
@@ -47,7 +53,8 @@ pub fn reindex(index: Index) -> tantivy::Result<()> {
             .to_owned()
             .into_string()
             .unwrap()
-            .ends_with(".md") // TODO: no hardcode
+            .ends_with(".md")
+        // TODO: no hardcode
         {
             let title = entry.path().file_name().unwrap();
             let mut file = File::open(entry.path())?;
@@ -68,7 +75,7 @@ pub fn reindex(index: Index) -> tantivy::Result<()> {
     Ok(())
 }
 
-pub fn search(index: Index, query: String, limit: usize) -> tantivy::Result<()> {
+pub fn search(index: Index, query: &str, limit: usize) -> tantivy::Result<Vec<Result>> {
     let schema = index.schema();
     // TODO: put this in a struct so can do fieldsStruct = FieldsStruct::from(schema)
     let contents = schema.get_field("contents").unwrap();
@@ -83,10 +90,20 @@ pub fn search(index: Index, query: String, limit: usize) -> tantivy::Result<()> 
     let query_parser = QueryParser::for_index(&index, vec![contents]);
     let query = query_parser.parse_query(&query)?;
     let top_docs = searcher.search(&query, &TopDocs::with_limit(limit))?;
-    for (_score, doc_address) in top_docs {
+    let mut results = Vec::new();
+    for (score, doc_address) in top_docs {
         let retrieved_doc = searcher.doc(doc_address)?;
         let fname = retrieved_doc.get_first(filename).unwrap().text().unwrap();
-        println!("{}", fname);
+        results.push(Result {
+            score,
+            fname: fname.to_owned(),
+        });
     }
-    Ok(())
+    Ok(results)
+}
+
+#[derive(Debug, Clone)]
+pub struct Result {
+    pub score: f32,
+    pub fname: String,
 }

@@ -1,3 +1,6 @@
+use failure::Fail;
+use std::cmp::Ordering::Equal;
+use std::error::Error;
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
@@ -10,9 +13,11 @@ use tantivy::ReloadPolicy;
 use tantivy::{doc, Index, IndexWriter};
 use walkdir::WalkDir;
 
+mod config;
 mod tools;
 
-use crate::tools::{get_schema, search, reindex};
+use crate::config::{Config, IndexConfig};
+use crate::tools::{get_index, reindex, search};
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "local-search")]
@@ -34,8 +39,7 @@ struct Opt {
 enum Command {
     /// Re-index a registered index
     #[structopt(name = "index")]
-    Index {
-    },
+    Index {},
     /// Run a search query on an index
     #[structopt(name = "search")]
     Search {
@@ -47,63 +51,64 @@ enum Command {
     },
 }
 
-fn main() -> tantivy::Result<()> {
+fn main() -> Result<(), Box<dyn Error>> {
     let opt = Opt::from_args();
-    dbg!(&opt);
+    let config = Config::load(opt.config_path)?;
 
-    let schema = get_schema();
+    if config.indexes.is_empty() {
+        return Err("no indexes defined in the config file".into());
+    }
+
+    let indexes: Vec<IndexConfig> = if opt.all {
+        config.indexes.values().map(|v| v.to_owned()).collect()
+    } else {
+        let chosen_index = opt.index_name.or(config.main.default_index);
+        let index = if config.indexes.len() == 1 && chosen_index.is_none() {
+            config
+                .indexes
+                .values()
+                .map(|v| v.to_owned())
+                .nth(0)
+                .expect("len asserted to be 1")
+        } else {
+            match chosen_index {
+                None => {
+                    return Err(
+                        "more than 1 index defined, but no index chosen and no default".into(),
+                    );
+                }
+                Some(key) => match config.indexes.get(&key) {
+                    Some(index) => index.to_owned(),
+                    None => {
+                        return Err(format!("index name {} not found", key).into());
+                    }
+                },
+            }
+        };
+        vec![index]
+    };
+    dbg!(&indexes);
 
     match opt.cmd {
         Command::Search { limit, query } => {
-            let index_path = MmapDirectory::open(opt.index_name.unwrap())?;
-            let index = Index::open_or_create(index_path, schema.clone())?;
-            search(index, query, limit)?;
+            let mut results = Vec::new();
+            for index_config in indexes {
+                let index = get_index(index_config.index_path.clone()).map_err(|e| e.compat())?;
+                results.append(&mut search(index, &query, limit).map_err(|e| e.compat())?);
+            }
+            // merge the results and print the top `limit` entries
+            results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(Equal));
+            for result in results.into_iter().take(limit) {
+                println!("{}", result.fname);
+            }
         }
-        Command::Index {  } => {
-            let index_path = MmapDirectory::open(opt.index_name.unwrap())?;
-            let index = Index::open_or_create(index_path, schema.clone())?;
-            reindex(index)?;
+        Command::Index {} => {
+            for index_config in indexes {
+                let index = get_index(index_config.index_path.clone()).map_err(|e| e.compat())?;
+                reindex(index).map_err(|e| e.compat())?;
+            }
         }
     }
 
     Ok(())
 }
-
-// TODO: instate this kind of logic to pick and load a config file
-// pub fn choose_config_file(
-//     file_override: &Option<String>,
-// ) -> Result<Option<String>, Box<dyn Error>> {
-//     match file_override {
-//         Some(s) => {
-//             // file override, use if exists, else err
-//             if s == "NONE" {
-//                 Ok(None)
-//             } else if Path::new(s).exists() {
-//                 Ok(Some(s.to_owned()))
-//             } else {
-//                 Err(format!("config file not found: {:?}", s).into())
-//             }
-//         }
-//         None => {
-//             // no file override; find a file in the default locations
-//             let config_dir = match env::var("XDG_CONFIG_HOME") {
-//                 Ok(val) => val,
-//                 Err(_) => format!("{}/.config", env::var("HOME")?),
-//             };
-
-//             let config_file = format!("{}/pc/config.toml", config_dir);
-
-//             if Path::new(&config_file).exists() {
-//                 Ok(Some(config_file))
-//             } else {
-//                 Ok(None)
-//             }
-//         }
-//     }
-// }
-
-// pub fn read_config(path: &str) -> Result<Config, Box<dyn Error>> {
-//     let data = read_file(path)?;
-//     let config = toml::from_str(&data)?;
-//     Ok(config)
-// }

@@ -10,3 +10,6 @@ edition = "2018"
 tantivy = "0.10.1"
 walkdir = "2.2.9"
 structopt = "0.2.18"
+serde = { version = "1.0.99", features = ["derive"] }
+toml = "0.5.1"
+failure = "0.1.5"

@@ -1,14 +1,16 @@
-
-# TODO: work on designing this config
-
 [main]
+# Default index to use. Required if more than one index defined below.
 default_index = "wiki"
 
+# Multiple indexes can be supplied following the below format. Each index must
+# have a unique name. Use a unique index_path per index.
 [indexes.wiki]
-index_path = "~/.wiki-index"
-# TODO: design method for including/excluding files from index.
-# Need to choose base directory/directories to start crawling, and inclusion,
-# exclusion criteria
-
-[indexes.random_notes]
-index_path = "~/.random-things-index"
+# The directory to store the index files in. Must exist. Should be an absolute
+# path.
+index_path = "/home/swalladge/.wiki-index"
+# List of files to index. Globbing supported - uses the glob crate - see
+# https://docs.rs/glob/0.3.0/glob/ for behaviour specific to this globbing
+# library.
+files = [
+  '/home/swalladge/wiki/**/*.md'
+]
