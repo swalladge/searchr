@@ -3,6 +3,8 @@
 
 A simple command line search engine for your local plain text files.
 
+Work in progress! The code is littered with TODO's, everything is hardcoded,
+and not much is implemented yet. Use at own risk!
 
 ## Installation
 
