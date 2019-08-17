@@ -3,8 +3,6 @@
 
 A simple command line search engine for your local plain text files.
 
-Work in progress! Most functionality has been implemented, but is likely to be
-rough around the edges.
 
 ## Installation
 
@@ -17,7 +15,7 @@ work fine.
 1. Create a config file to configure what files you want indexed and where to
    store the indexes. (see configuration section below)
 2. Create the index: `mkdir <my index location> && local-search index`
-3. Search: `local-search search "foo bar"
+3. Search: `local-search search "foo bar"`
 
 See [tantivy
 docs](https://docs.rs/tantivy/0.10.1/tantivy/query/struct.QueryParser.html) for
@@ -51,7 +49,8 @@ Since I generally avoid categories and hierarchies, various types of searches
 is the main method I use for finding a note. Currently there are two methods I
 use for finding a note:
 
-1. fuzzy text search on the note filenames (Fzf or [this
+1. fuzzy text search on the note filenames
+   ([fzf](https://github.com/junegunn/fzf) or [this
    script](https://github.com/swalladge/dotfiles/blob/master/bin/open-wiki-page))
 2. grep through the files
 
