@@ -1,12 +1,14 @@
-use glob::{glob_with, MatchOptions};
-use log::{debug, info, warn};
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
+
+use glob::{glob_with, MatchOptions};
+use log::{debug, info, warn};
 use tantivy::collector::TopDocs;
 use tantivy::directory::MmapDirectory;
 use tantivy::query::QueryParser;
 use tantivy::schema::*;
+use tantivy::tokenizer::*;
 use tantivy::ReloadPolicy;
 use tantivy::{doc, Index};
 
@@ -21,14 +23,27 @@ struct MyIndex {
 impl MyIndex {
     fn open(path: String) -> tantivy::Result<Self> {
         let mut schema_builder = Schema::builder();
-        // TODO: more fields? tag, etc.? could be useful if we expand to other file types as well?
         schema_builder.add_text_field("filename", STRING | STORED);
-        // TODO: make sure stemming tokenizer is running on this field
-        schema_builder.add_text_field("contents", TEXT);
+
+        // Use a custom stemmer based on en_stem. We can modify this later to switch languages from
+        // the config if desired.
+        let stemmer = SimpleTokenizer
+            .filter(RemoveLongFilter::limit(40))
+            .filter(LowerCaser)
+            .filter(Stemmer::new(Language::English));
+        let stemmer_name = format!("custom_stemmer_{}", "en");
+
+        let text_options = TextOptions::default().set_indexing_options(
+            TextFieldIndexing::default()
+                .set_tokenizer(&stemmer_name)
+                .set_index_option(IndexRecordOption::WithFreqsAndPositions),
+        );
+        schema_builder.add_text_field("contents", text_options);
         let schema = schema_builder.build();
 
         let index_path = MmapDirectory::open(path)?;
         let index = Index::open_or_create(index_path, schema.clone())?;
+        index.tokenizers().register(&stemmer_name, stemmer);
 
         Ok(Self {
             index,

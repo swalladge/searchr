@@ -16,7 +16,7 @@ index_path = "/home/swalladge/.wiki-index"
 # https://docs.rs/glob/0.3.0/glob/ for behaviour specific to this globbing
 # library.
 files = [
-  '/home/swalladge/wiki/**/*.md'
+  '/home/swalladge/wiki/**/*.md',
 ]
 
 # Custom options for glob matching files for this index. These are optional.

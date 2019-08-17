@@ -93,7 +93,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         };
         vec![index]
     };
-    dbg!(&indexes);
 
     match opt.cmd {
         Command::Search { limit, query } => {
