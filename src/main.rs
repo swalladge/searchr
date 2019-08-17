@@ -1,23 +1,13 @@
 use failure::Fail;
 use std::cmp::Ordering::Equal;
 use std::error::Error;
-use std::fs::File;
-use std::io::Read;
-use std::path::PathBuf;
 use structopt::{self, StructOpt};
-use tantivy::collector::TopDocs;
-use tantivy::directory::MmapDirectory;
-use tantivy::query::QueryParser;
-use tantivy::schema::*;
-use tantivy::ReloadPolicy;
-use tantivy::{doc, Index, IndexWriter};
-use walkdir::WalkDir;
 
 mod config;
 mod tools;
 
 use crate::config::{Config, IndexConfig};
-use crate::tools::{get_index, reindex, search};
+use crate::tools::{reindex, search};
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "local-search")]
@@ -93,8 +83,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         Command::Search { limit, query } => {
             let mut results = Vec::new();
             for index_config in indexes {
-                let index = get_index(index_config.index_path.clone()).map_err(|e| e.compat())?;
-                results.append(&mut search(index, &query, limit).map_err(|e| e.compat())?);
+                results.append(&mut search(index_config, &query, limit).map_err(|e| e.compat())?);
             }
             // merge the results and print the top `limit` entries
             results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(Equal));
@@ -104,8 +93,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
         Command::Index {} => {
             for index_config in indexes {
-                let index = get_index(index_config.index_path.clone()).map_err(|e| e.compat())?;
-                reindex(index).map_err(|e| e.compat())?;
+                reindex(index_config).map_err(|e| e.compat())?;
             }
         }
     }
