@@ -14,10 +14,14 @@ work fine.
 
 ## Usage
 
-1. create a config file to configure what files you want indexed and where to
-   store the indexes
-2. index: `local-search -a index`
-3. search: `local-search search "foo bar"
+1. Create a config file to configure what files you want indexed and where to
+   store the indexes. (see configuration section below)
+2. Create the index: `mkdir <my index location> && local-search index`
+3. Search: `local-search search "foo bar"
+
+See [tantivy
+docs](https://docs.rs/tantivy/0.10.1/tantivy/query/struct.QueryParser.html) for
+the supported query syntax.
 
 
 ## Configuration
