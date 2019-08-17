@@ -40,7 +40,7 @@ is the main method I use for finding a note. Currently there are two methods I
 use for finding a note:
 
 1. fuzzy text search on the note filenames (Fzf or [this
-   script](https://github.com/swalladge/dotfiles/blob/master/bin/open-wiki-page)
+   script](https://github.com/swalladge/dotfiles/blob/master/bin/open-wiki-page))
 2. grep through the files
 
 The first method is perfect if I roughly know what what I'm looking for and
