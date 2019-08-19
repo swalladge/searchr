@@ -9,6 +9,9 @@ A simple command line full text search engine for your local plain text files.
 Standard rust project. `cargo install` or git clone and `cargo build` should
 work fine.
 
+If you run Archlinux, you can install from the aur:
+[searchr-git](https://aur.archlinux.org/packages/searchr-git/).
+
 
 ## Usage
 

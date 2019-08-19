@@ -2,7 +2,7 @@
 name = "searchr"
 version = "0.1.0"
 authors = ["Samuel Walladge <samuel@swalladge.net>"]
-description = "Command line local plain text files indexer and searcher."
+description = "Command line local plain text files indexer and searcher"
 readme = "README.md"
 keywords = ["cli", "search", "tantivy"]
 repository = "https://github.com/swalladge/searchr/"
