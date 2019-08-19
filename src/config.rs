@@ -54,7 +54,7 @@ impl Config {
                     Err(_) => format!("{}/.config", env::var("HOME")?),
                 };
 
-                let config_file = format!("{}/local-search/config.toml", config_dir);
+                let config_file = format!("{}/searchr/config.toml", config_dir);
 
                 if Path::new(&config_file).exists() {
                     config_file

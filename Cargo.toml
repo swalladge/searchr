@@ -1,11 +1,11 @@
 [package]
-name = "local-search"
+name = "searchr"
 version = "0.1.0"
 authors = ["Samuel Walladge <samuel@swalladge.net>"]
 description = "Command line local plain text files indexer and searcher."
 readme = "README.md"
 keywords = ["cli", "search", "tantivy"]
-repository = "https://github.com/swalladge/local-search/"
+repository = "https://github.com/swalladge/searchr/"
 categories = ["command-line-utilities"]
 license = "MIT OR Apache-2.0"
 edition = "2018"

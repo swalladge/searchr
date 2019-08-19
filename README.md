@@ -1,7 +1,7 @@
 
-# Local Search
+# Searchr
 
-A simple command line search engine for your local plain text files.
+A simple command line full text search engine for your local plain text files.
 
 
 ## Installation
@@ -14,8 +14,8 @@ work fine.
 
 1. Create a config file to configure what files you want indexed and where to
    store the indexes. (see configuration section below)
-2. Create the index: `mkdir <my index location> && local-search index`
-3. Search: `local-search search "foo bar"`
+2. Create the index: `mkdir <my index location> && searchr index`
+3. Search: `searchr search "foo bar"`
 
 See [tantivy
 docs](https://docs.rs/tantivy/0.10.1/tantivy/query/struct.QueryParser.html) for
@@ -29,8 +29,8 @@ searches for the configuration file in the following locations in order, and
 uses the first match:
 
 1. path passed to `-c` on the command line
-2. `$XDG_CONFIG_HOME/local-search/config.toml`
-3. `$HOME/.config/local-search/config.toml`
+2. `$XDG_CONFIG_HOME/searchr/config.toml`
+3. `$HOME/.config/searchr/config.toml`
 
 If none are found, the software exits with an error.
 

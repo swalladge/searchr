@@ -10,7 +10,7 @@ use crate::config::{Config, IndexConfig};
 use crate::tools::{reindex, search};
 
 #[derive(StructOpt, Debug)]
-#[structopt(name = "local-search")]
+#[structopt(name = "searchr")]
 struct Opt {
     /// Be verbose (log to stderr). -vv for debug level, -vvv for trace
     #[structopt(short = "v", long = "verbose", parse(from_occurrences))]
