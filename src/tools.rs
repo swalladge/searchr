@@ -5,12 +5,12 @@ use std::path::Path;
 use glob::{glob_with, MatchOptions};
 use log::{debug, info, warn};
 use tantivy::collector::TopDocs;
+use tantivy::directory::MmapDirectory;
 use tantivy::query::QueryParser;
 use tantivy::schema::*;
 use tantivy::tokenizer::*;
 use tantivy::ReloadPolicy;
 use tantivy::{doc, Index};
-use tantivy::directory::MmapDirectory;
 
 use crate::config::IndexConfig;
 
@@ -43,26 +43,7 @@ struct MyIndex {
 }
 
 impl MyIndex {
-    fn open(index_config: &IndexConfig) -> tantivy::Result<Self> {
-        let index = Index::open_in_dir(&index_config.index_path)?;
-        // Use a custom stemmer based on en_stem. We can modify this later to switch languages from
-        // the config if desired.
-        let stemmer = SimpleTokenizer
-            .filter(RemoveLongFilter::limit(40))
-            .filter(LowerCaser)
-            .filter(Stemmer::new(index_config.language));
-        let stemmer_name = format!("custom_stemmer_{}", lang_to_str(index_config.language));
-        index.tokenizers().register(&stemmer_name, stemmer);
-
-        let schema = index.schema();
-        Ok(Self {
-            index,
-            filename: schema.get_field("filename").unwrap(),
-            contents: schema.get_field("contents").unwrap(),
-        })
-    }
-
-    fn create(index_config: &IndexConfig) -> tantivy::Result<Self> {
+    fn load(index_config: &IndexConfig) -> tantivy::Result<Self> {
         let mut schema_builder = Schema::builder();
         schema_builder.add_text_field("filename", STRING | STORED);
 
@@ -95,7 +76,7 @@ impl MyIndex {
 }
 
 pub fn reindex(index_config: IndexConfig) -> tantivy::Result<()> {
-    let my_index = MyIndex::create(&index_config)?;
+    let my_index = MyIndex::load(&index_config)?;
     let mut index_writer = my_index.index.writer(50_000_000)?;
 
     // reset the index
@@ -147,7 +128,7 @@ pub fn search(
     query: &str,
     limit: usize,
 ) -> tantivy::Result<Vec<Result>> {
-    let my_index = MyIndex::open(&index_config)?;
+    let my_index = MyIndex::load(&index_config)?;
 
     let reader = my_index
         .index
