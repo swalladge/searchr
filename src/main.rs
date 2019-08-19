@@ -59,7 +59,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         simplelog::Config::default(),
         simplelog::TerminalMode::Stderr,
     )
-    .unwrap();
+    .unwrap_or_else(|_| eprintln!(":: Could not init termlogger. Ignoring."));
 
     if config.indexes.is_empty() {
         return Err("no indexes defined in the config file".into());
