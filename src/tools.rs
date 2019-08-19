@@ -10,6 +10,7 @@ use tantivy::schema::*;
 use tantivy::tokenizer::*;
 use tantivy::ReloadPolicy;
 use tantivy::{doc, Index};
+use tantivy::directory::MmapDirectory;
 
 use crate::config::IndexConfig;
 
@@ -81,7 +82,8 @@ impl MyIndex {
         schema_builder.add_text_field("contents", text_options);
         let schema = schema_builder.build();
 
-        let index = Index::create_in_dir(&index_config.index_path, schema.clone())?;
+        let path = MmapDirectory::open(&index_config.index_path)?;
+        let index = Index::open_or_create(path, schema.clone())?;
         index.tokenizers().register(&stemmer_name, stemmer);
 
         Ok(Self {
